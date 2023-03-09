@@ -1,0 +1,17 @@
+# Comment
+
+-> Alphabet
+a
+b
+
+-> States
+q0 S
+q1 F
+
+-> Transition
+
+q0 a q0
+q0 b q1
+
+q1 a q0
+q1 b q1
