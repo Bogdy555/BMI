@@ -49,6 +49,8 @@ namespace BMI_API
 	namespace DFA
 	{
 
+		enum ChunkTypes : uint8_t;
+
 		class Symbol;
 
 		class State;

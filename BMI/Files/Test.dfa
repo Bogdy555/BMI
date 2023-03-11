@@ -8,7 +8,7 @@ b
 q0 S
 q1 F
 
--> Transition
+-> Transitions
 
 q0 a q0
 q0 b q1

@@ -171,7 +171,7 @@ const bool BMI_API::DFA::Machine::ComputeString(const std::wstring& _Text, std::
 
 	delete[] _TextRaw;
 
-	return _String.size() != 0;
+	return true;
 }
 
 bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
@@ -179,13 +179,6 @@ bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
 	if (!IsInitialized())
 	{
 		BMI_API_DEBUG_BREAK_MSG(BMI_API_STRING("Can't run the Machine, it is not initialized."));
-
-		return false;
-	}
-
-	if (!_String.size())
-	{
-		BMI_API_DEBUG_BREAK_MSG(BMI_API_STRING("Can't run an empty string through the Machine."));
 
 		return false;
 	}
@@ -207,41 +200,314 @@ bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
 
 bool BMI_API::DFA::Machine::LoadFromFile(std::wifstream& _File)
 {
-	Alphabet.push_back(Symbol());
-	Alphabet.push_back(Symbol());
+	CleanUp();
 
-	Alphabet[0].Init(L"a");
-	Alphabet[1].Init(L"b");
+	bool _FoundInitialState = false;
+	uint8_t _CurrentChunk = _NullChunk;
+	std::vector<uint8_t> _FoundChunks;
+	std::vector<std::vector<std::wstring>> _Transitions;
 
-	States.push_back(State());
-	States.push_back(State());
+	wchar_t _Line[BMI_API_MAX_LINE_SIZE + 1];
 
-	States[0].Init(L"q0", 0);
-	States[1].Init(L"q1", 1);
-
-	InitialStateId = 0;
-
-	TransitionTable = new size_t[4];
-
-	if (!TransitionTable)
+	while (!_File.eof())
 	{
-		Alphabet.clear();
-		States.clear();
+		_File.getline(_Line, BMI_API_MAX_LINE_SIZE);
+
+		std::vector<std::wstring> _TokensVec;
+
+		for (const wchar_t* _Token = String::TokenizeWhiteSpace(_Line); _Token != nullptr; _Token = String::TokenizeWhiteSpace(nullptr))
+		{
+			_TokensVec.push_back(_Token);
+		}
+
+		if (!_TokensVec.size())
+		{
+			continue;
+		}
+
+		if (_TokensVec[0][0] == L'#')
+		{
+			continue;
+		}
+
+		if (_TokensVec[0] == L"->")
+		{
+			if (_TokensVec.size() != 2)
+			{
+				CleanUp();
+
+				return false;
+			}
+
+			if (_TokensVec[1] == L"Alphabet")
+			{
+				for (size_t _Index = 0; _Index < _FoundChunks.size(); _Index++)
+				{
+					if (_FoundChunks[_Index] == _AlphabetChunk)
+					{
+						CleanUp();
+						return false;
+					}
+				}
+
+				_FoundChunks.push_back(_AlphabetChunk);
+				_CurrentChunk = _AlphabetChunk;
+
+				continue;
+			}
+
+			if (_TokensVec[1] == L"States")
+			{
+				for (size_t _Index = 0; _Index < _FoundChunks.size(); _Index++)
+				{
+					if (_FoundChunks[_Index] == _StatesChunk)
+					{
+						CleanUp();
+						return false;
+					}
+				}
+
+				_FoundChunks.push_back(_StatesChunk);
+				_CurrentChunk = _StatesChunk;
+
+				continue;
+			}
+
+			if (_TokensVec[1] == L"Transitions")
+			{
+				for (size_t _Index = 0; _Index < _FoundChunks.size(); _Index++)
+				{
+					if (_FoundChunks[_Index] == _TransitionsChunk)
+					{
+						CleanUp();
+						return false;
+					}
+				}
+
+				_FoundChunks.push_back(_TransitionsChunk);
+				_CurrentChunk = _TransitionsChunk;
+
+				continue;
+			}
+
+			CleanUp();
+
+			return false;
+		}
+
+		switch (_CurrentChunk)
+		{
+		case _NullChunk:
+		{
+			CleanUp();
+			return false;
+		}
+		case _AlphabetChunk:
+		{
+			if (_TokensVec.size() != 1)
+			{
+				CleanUp();
+				return false;
+			}
+
+			for (size_t _Index = 0; _Index < Alphabet.size(); _Index++)
+			{
+				if (Alphabet[_Index].GetName() == _TokensVec[0])
+				{
+					CleanUp();
+					return false;
+				}
+			}
+
+			Alphabet.push_back(Symbol());
+
+			Alphabet[Alphabet.size() - 1].Init(_TokensVec[0]);
+
+			continue;
+		}
+		case _StatesChunk:
+		{
+			if (_TokensVec.size() != 2 && _TokensVec.size() != 3)
+			{
+				CleanUp();
+				return false;
+			}
+
+			for (size_t _Index = 0; _Index < States.size(); _Index++)
+			{
+				if (States[_Index].GetName() == _TokensVec[0])
+				{
+					CleanUp();
+					return false;
+				}
+			}
+
+			bool _Final = false;
+			bool _Initial = false;
+
+			if (_TokensVec.size() == 2)
+			{
+				if (_TokensVec[1] == L"F")
+				{
+					_Final = true;
+				}
+				else
+				{
+					if (_TokensVec[1] == L"S")
+					{
+						_Initial = true;
+					}
+					else
+					{
+						CleanUp();
+						return false;
+					}
+				}
+			}
+
+			if (_TokensVec.size() == 3)
+			{
+				if (_TokensVec[1] == _TokensVec[2])
+				{
+					CleanUp();
+					return false;
+				}
+
+				if (_TokensVec[1] != L"F" && _TokensVec[1] != L"S")
+				{
+					CleanUp();
+					return false;
+				}
+
+				if (_TokensVec[2] != L"F" && _TokensVec[2] != L"S")
+				{
+					CleanUp();
+					return false;
+				}
+
+				_Initial = true;
+				_Final = true;
+			}
+
+			if (_Initial)
+			{
+				if (_FoundInitialState)
+				{
+					CleanUp();
+					return false;
+				}
+
+				_FoundInitialState = true;
+				InitialStateId = States.size();
+			}
+
+			States.push_back(State());
+
+			States[States.size() - 1].Init(_TokensVec[0], _Final);
+
+			continue;
+		}
+		case _TransitionsChunk:
+		{
+			continue;
+		}
+		default:
+		{
+			CleanUp();
+			return false;
+		}
+		}
+
+		CleanUp();
+
 		return false;
 	}
 
-	TransitionTable[0] = 0;
-	TransitionTable[1] = 1;
-	TransitionTable[2] = 0;
-	TransitionTable[3] = 1;
+	if (!Alphabet.size() || !States.size() || !_FoundInitialState || _FoundChunks.size() != 3)
+	{
+		CleanUp();
+		return false;
+	}
+
+	for (size_t _Index = 0; _Index < _Transitions.size(); _Index++)
+	{
+		if (_Transitions[_Index].size() != 3)
+		{
+			CleanUp();
+			return false;
+		}
+
+		bool _FoundInStates1 = false;
+		bool _FoundInAlphabet = false;
+		bool _FoundInStates2 = false;
+
+		for (size_t _StatesIndex = 0; _StatesIndex < States.size(); _StatesIndex++)
+		{
+			if (States[_StatesIndex].GetName() == _Transitions[_Index][0])
+			{
+				_FoundInStates1 = true;
+				break;
+			}
+		}
+
+		for (size_t _AlphabetIndex = 0; _AlphabetIndex < Alphabet.size(); _AlphabetIndex++)
+		{
+			if (Alphabet[_AlphabetIndex].GetName() == _Transitions[_Index][1])
+			{
+				_FoundInAlphabet = true;
+				break;
+			}
+		}
+
+		for (size_t _StatesIndex = 0; _StatesIndex < States.size(); _StatesIndex++)
+		{
+			if (States[_StatesIndex].GetName() == _Transitions[_Index][2])
+			{
+				_FoundInStates2 = true;
+				break;
+			}
+		}
+
+		if (!_FoundInStates1 || !_FoundInAlphabet || !_FoundInStates2)
+		{
+			CleanUp();
+			return false;
+		}
+	}
+
+	size_t _TransitionTableSize = Alphabet.size() * States.size();
+
+	TransitionTable = new size_t[_TransitionTableSize];
+
+	if (!TransitionTable)
+	{
+		CleanUp();
+		return false;
+	}
+
+	for (size_t _Index = 0; _Index < _TransitionTableSize; _Index++)
+	{
+		TransitionTable[_Index] = States.size();
+	}
+
+	for (size_t _Index = 0; _Index < _Transitions.size(); _Index++)
+	{
+		TransitionTable[GetSymbolId(_Transitions[_Index][1]) + GetStateId(_Transitions[_Index][0]) * Alphabet.size()] = GetStateId(_Transitions[_Index][2]);
+	}
 
 	return true;
 }
 
 void BMI_API::DFA::Machine::CleanUp()
 {
-	Alphabet.clear();
-	States.clear();
+	if (Alphabet.size())
+	{
+		Alphabet.clear();
+	}
+	if (States.size())
+	{
+		States.clear();
+	}
 	InitialStateId = 0;
 	if (TransitionTable)
 	{

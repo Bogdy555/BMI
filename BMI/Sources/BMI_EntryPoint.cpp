@@ -6,7 +6,7 @@ int WINAPI wWinMain(_In_ HINSTANCE _hInstance, _In_opt_ HINSTANCE _hPrevInstance
 {
 	if (__argc != 2)
 	{
-		BMI_API_PRINT(BMI_API_STRING("Usage: BMI.exe \".\\File.dfa\"\n"));
+		BMI_API_PRINT(BMI_API_STRING("Usage: BMI.exe \"File path\"\n"));
 
 		return -1;
 	}
@@ -50,8 +50,10 @@ int WINAPI wWinMain(_In_ HINSTANCE _hInstance, _In_opt_ HINSTANCE _hPrevInstance
 		return -1;
 	}
 
+	bool _RunRez = _Machine.Run(_IndexesString);
+
 	BMI_API_PRINT(BMI_API_STRING("The result is: "));
-	BMI_API_PRINT(_Machine.Run(_IndexesString));
+	BMI_API_PRINT(_RunRez);
 	BMI_API_PRINT(BMI_API_STRING('\n'));
 
 	_Machine.CleanUp();

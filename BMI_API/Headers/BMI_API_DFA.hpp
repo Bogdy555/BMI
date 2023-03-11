@@ -14,6 +14,14 @@ namespace BMI_API
 	namespace DFA
 	{
 
+		enum ChunkTypes : uint8_t
+		{
+			_NullChunk = 0,
+			_AlphabetChunk = 1,
+			_StatesChunk = 2,
+			_TransitionsChunk = 3
+		};
+
 		class Symbol
 		{
 
