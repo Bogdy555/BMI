@@ -174,7 +174,7 @@ const bool BMI_API::DFA::Machine::ComputeString(const std::wstring& _Text, std::
 	return true;
 }
 
-bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
+bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String, std::vector<size_t>* _History)
 {
 	if (!IsInitialized())
 	{
@@ -185,6 +185,11 @@ bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
 
 	size_t _CurrentStateId = InitialStateId;
 
+	if (_History)
+	{
+		_History->push_back(_CurrentStateId);
+	}
+
 	for (size_t _Index = 0; _Index < _String.size(); _Index++)
 	{
 		_CurrentStateId = GetNextStateId(_CurrentStateId, _String[_Index]);
@@ -192,6 +197,11 @@ bool BMI_API::DFA::Machine::Run(const std::vector<size_t>& _String)
 		if (_CurrentStateId == States.size())
 		{
 			return false;
+		}
+
+		if (_History)
+		{
+			_History->push_back(_CurrentStateId);
 		}
 	}
 
@@ -409,6 +419,27 @@ bool BMI_API::DFA::Machine::LoadFromFile(std::wifstream& _File)
 		}
 		case _TransitionsChunk:
 		{
+			if (_TokensVec.size() != 3)
+			{
+				CleanUp();
+				return false;
+			}
+
+			for (size_t _Index = 0; _Index < _Transitions.size(); _Index++)
+			{
+				if (_Transitions[_Index][0] == _TokensVec[0] && _Transitions[_Index][1] == _TokensVec[1])
+				{
+					CleanUp();
+					return false;
+				}
+			}
+
+			_Transitions.push_back(std::vector<std::wstring>());
+
+			_Transitions[_Transitions.size() - 1].push_back(_TokensVec[0]);
+			_Transitions[_Transitions.size() - 1].push_back(_TokensVec[1]);
+			_Transitions[_Transitions.size() - 1].push_back(_TokensVec[2]);
+
 			continue;
 		}
 		default:

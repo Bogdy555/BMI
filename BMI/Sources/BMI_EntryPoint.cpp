@@ -50,10 +50,25 @@ int WINAPI wWinMain(_In_ HINSTANCE _hInstance, _In_opt_ HINSTANCE _hPrevInstance
 		return -1;
 	}
 
-	bool _RunRez = _Machine.Run(_IndexesString);
+	std::vector<size_t> _History;
+	bool _RunRez = _Machine.Run(_IndexesString, &_History);
 
 	BMI_API_PRINT(BMI_API_STRING("The result is: "));
 	BMI_API_PRINT(_RunRez);
+	BMI_API_PRINT(BMI_API_STRING('\n'));
+
+	BMI_API_PRINT(BMI_API_STRING("History: "));
+
+	for (size_t _Index = 0; _Index < _History.size(); _Index++)
+	{
+		BMI_API_PRINT(_Machine.GetStates()[_History[_Index]].GetName());
+
+		if (_Index != _History.size() - 1)
+		{
+			BMI_API_PRINT(BMI_API_STRING(' '));
+		}
+	}
+
 	BMI_API_PRINT(BMI_API_STRING('\n'));
 
 	_Machine.CleanUp();

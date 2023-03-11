@@ -83,7 +83,7 @@ namespace BMI_API
 			~Machine();
 
 			const bool ComputeString(const std::wstring& _Text, std::vector<size_t>& _String) const;
-			bool Run(const std::vector<size_t>& _String);
+			bool Run(const std::vector<size_t>& _String, std::vector<size_t>* _History = nullptr);
 
 			bool LoadFromFile(std::wifstream& _File);
 			void CleanUp();
