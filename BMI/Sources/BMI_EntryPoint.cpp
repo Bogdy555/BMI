@@ -33,6 +33,22 @@ int WINAPI wWinMain(_In_ HINSTANCE _hInstance, _In_opt_ HINSTANCE _hPrevInstance
 		return -1;
 	}
 
+	BMI_API_PRINT(BMI_API_STRING("Alphabet: "));
+
+	for (size_t _Index = 0; _Index < _Machine.GetAlphabet().size(); _Index++)
+	{
+		BMI_API_PRINT(_Machine.GetAlphabet()[_Index].GetName());
+
+		if (_Index != _Machine.GetAlphabet().size() - 1)
+		{
+			BMI_API_PRINT(BMI_API_STRING(' '));
+		}
+	}
+
+	BMI_API_PRINT(BMI_API_STRING('\n'));
+
+	BMI_API_PRINT(BMI_API_STRING("Machine input: "));
+
 	wchar_t _InputString[BMI_API_MAX_STRING_SIZE + 1];
 
 	std::wcin.getline(_InputString, BMI_API_MAX_STRING_SIZE);
